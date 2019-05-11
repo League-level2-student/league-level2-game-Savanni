@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
@@ -25,6 +26,11 @@ public class Tetris extends JPanel implements ActionListener, KeyListener {
 
 	ArrayList<block> inactiveBlocks = new ArrayList<block>();
 
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		new Tetris().startup();
+	}
+
 	public void startup() {
 		frame.setPreferredSize(new Dimension(500, 800));
 		frame.add(this);
@@ -32,49 +38,29 @@ public class Tetris extends JPanel implements ActionListener, KeyListener {
 		frame.pack();
 		frame.addKeyListener(this);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		activeBlock = new block();
+		JOptionPane.showMessageDialog(null, "Your goal is to clear lines and get as many points as you can!");
+		t.start();
 	}
 
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		Tetris tetris = new Tetris();
-		tetris.startup();
-	}
-
-	// start of grid class
-
-	class grid {
-		int xoffset = 0;
-		int yoffset = 0;
-
-		public void draw(Graphics g) {
-			g.setColor(Color.gray);
-			g.fillRect(0, 0, 360, 500);
-
-			g.setColor(Color.BLACK);
-			for (int i = 0; i < 19; i++) {
-				g.fillRect(0, 500, yoffset, 1);
-				yoffset += 20;
-			}
-			yoffset = 0;
-
-			for (int i = 0; i < 10; i++) {
-				g.fillRect(xoffset, 0, 1, 500);
-				xoffset += 40;
-			}
-			xoffset = 0;
-
-		}
-	}
-
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
-
-	}
+	int x = 0;
 
 	public void paintComponent(Graphics g) {
+		for (block b : inactiveBlocks) {
+			b.draw(g);
+		}
 		grid.draw(g);
+		activeBlock.draw(g);
+		
 
+	}
+	public void actionPerformed(ActionEvent e) {
+		activeBlock.update(inactiveBlocks);
+		if (!activeBlock.active) {
+			inactiveBlocks.add(activeBlock);
+			activeBlock = new block();
+		}
+		repaint();
 	}
 
 	@Override
@@ -86,7 +72,19 @@ public class Tetris extends JPanel implements ActionListener, KeyListener {
 	@Override
 	public void keyPressed(KeyEvent e) {
 		// TODO Auto-generated method stub
-
+		if (e.getKeyCode() == (KeyEvent.VK_ESCAPE)) {
+			t.stop();
+			System.exit(0);
+		}
+		if (e.getKeyCode() == (KeyEvent.VK_LEFT)) {
+			activeBlock.moveLeft();
+		}
+		if (e.getKeyCode() == (KeyEvent.VK_RIGHT)) {
+			activeBlock.moveRight();
+		}
+		if (e.getKeyCode() == (KeyEvent.VK_DOWN)) {
+			activeBlock.moveDown();
+		}
 	}
 
 	@Override
@@ -95,6 +93,32 @@ public class Tetris extends JPanel implements ActionListener, KeyListener {
 
 	}
 
+}
+
+// start of grid class
+
+class grid {
+	int xoffset = 0;
+	int yoffset = 0;
+
+	public void draw(Graphics g) {
+
+
+		g.setColor(Color.BLACK);
+		for (int i = 0; i < 19; i++) {
+			g.fillRect(0, 500, yoffset, 1);
+			yoffset += 20;
+			
+		}
+		yoffset = 0;
+
+		for (int i = 0; i < 10; i++) {
+			g.fillRect(xoffset, 0, 1, 500);
+			xoffset += 40;
+		}
+		xoffset = 0;
+
+	}
 }
 
 // start of block class
@@ -107,12 +131,12 @@ class block {
 	int yMove = 20;
 
 	private int floor = 500;
-	private boolean active = true;
+	boolean active = true;
 
 	private boolean moveRight = false;
 	private boolean moveLeft = false;
 
-	int speed = 1000;
+	int speed = 2000;
 	long dropTime = -1;
 
 	public block() {
@@ -151,11 +175,26 @@ class block {
 
 	public void draw(Graphics g) {
 		g.setColor(blockcolor);
-		g.fillRect(xPosition - 4, yPosition, 20, 20);
+		// Square
+		if (blockcolor == Color.BLUE) {
+			g.fillRect(xPosition - 4, yPosition, 40, 40);
+		}
+		// Line
+		if (blockcolor == Color.red) {
+			g.fillRect(xPosition - 4, yPosition, 20, 80);
+		}
+		// L-Piece
+		if (blockcolor == Color.green) {
+			g.fillRect(xPosition - 4, yPosition + 20, 20, 20);
+			g.fillRect(xPosition - 4, yPosition, 60, 20);
+		// Z-Piece WIP
+		}
+		
+
 	}
 
 	public void update(ArrayList<block> blocks) {
-		if (yPosition >= floor) {
+		if (yPosition == floor - 40) {
 			active = false;
 		}
 
@@ -163,10 +202,25 @@ class block {
 			yPosition -= yMove;
 			active = false;
 		}
-		if (moveLeft && !checkBlock(xPosition - xMove, yPosition, blocks)){
+		if (moveLeft && !checkBlock(xPosition - xMove, yPosition, blocks)) {
 			xPosition -= xMove;
 		}
+		if (moveRight && !checkBlock(xPosition + xMove, yPosition, blocks)) {
 
+		}
+		moveRight = false;
+		moveLeft = false;
+		if (active) {
+			if (System.currentTimeMillis() - dropTime >= speed) {
+				yPosition += yMove;
+				dropTime = System.currentTimeMillis();
+			}
+			
+		}
+		else {
+			speed = 0;
+		}
+		
 	}
 
 	private boolean checkBlock(int x, int y, ArrayList<block> blocks) {
